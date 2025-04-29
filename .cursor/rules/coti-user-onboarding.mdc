@@ -1,0 +1,290 @@
+# COTI User Onboarding with MetaMask
+
+This guide demonstrates how to implement COTI user onboarding using MetaMask in a React application.
+
+## Basic Setup
+
+### 1. Required Dependencies
+```bash
+npm install @coti-io/coti-ethers @web3modal/ethers
+```
+
+### 2. Onboarding Component
+```typescript
+import { useState } from 'react';
+import { BrowserProvider } from '@coti-io/coti-ethers';
+import { useWeb3ModalProvider } from '@web3modal/ethers/react';
+
+interface OnboardingState {
+  isConnected: boolean;
+  address: string;
+  aesKey: string;
+  error: string;
+}
+
+function COTIOnboarding() {
+  const [state, setState] = useState<OnboardingState>({
+    isConnected: false,
+    address: '',
+    aesKey: '',
+    error: ''
+  });
+
+  const { walletProvider } = useWeb3ModalProvider();
+
+  const onboard = async () => {
+    try {
+      if (!walletProvider) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      const provider = new BrowserProvider(walletProvider);
+      const signer = await provider.getSigner();
+      
+      // Generate or recover AES key
+      await signer.generateOrRecoverAes();
+      
+      // Get user onboard info
+      const userInfo = signer.getUserOnboardInfo();
+      
+      setState({
+        isConnected: true,
+        address: await signer.getAddress(),
+        aesKey: userInfo?.aesKey || '',
+        error: ''
+      });
+
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'Onboarding failed'
+      }));
+      console.error('Onboarding error:', error);
+    }
+  };
+
+  return (
+    <div>
+      <h2>COTI Onboarding</h2>
+      
+      {/* Wallet Connection Button */}
+      <w3m-button />
+
+      {/* Onboarding Button */}
+      <button 
+        onClick={onboard}
+        disabled={!walletProvider}
+      >
+        Start Onboarding
+      </button>
+
+      {/* Status Display */}
+      {state.isConnected && (
+        <div>
+          <p>Address: {state.address}</p>
+          <p>AES Key: {state.aesKey}</p>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {state.error && (
+        <p style={{ color: 'red' }}>{state.error}</p>
+      )}
+    </div>
+  );
+}
+```
+
+## Complete Onboarding Flow
+
+### 1. Onboarding Manager
+```typescript
+class COTIOnboardingManager {
+  private provider: BrowserProvider;
+  private signer: any;
+
+  constructor(walletProvider: any) {
+    this.provider = new BrowserProvider(walletProvider);
+  }
+
+  async initialize() {
+    try {
+      this.signer = await this.provider.getSigner();
+      return true;
+    } catch (error) {
+      console.error('Initialization failed:', error);
+      return false;
+    }
+  }
+
+  async performOnboarding() {
+    try {
+      // Generate or recover AES key
+      await this.signer.generateOrRecoverAes();
+      
+      // Get onboarding info
+      const userInfo = this.signer.getUserOnboardInfo();
+      
+      return {
+        success: true,
+        address: await this.signer.getAddress(),
+        aesKey: userInfo?.aesKey
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async verifyOnboarding() {
+    try {
+      const userInfo = this.signer.getUserOnboardInfo();
+      return !!userInfo?.aesKey;
+    } catch {
+      return false;
+    }
+  }
+}
+```
+
+### 2. Enhanced Onboarding Component
+```typescript
+function EnhancedCOTIOnboarding() {
+  const [status, setStatus] = useState({
+    step: 'initial',
+    message: '',
+    error: ''
+  });
+
+  const { walletProvider } = useWeb3ModalProvider();
+  const [onboardingManager, setOnboardingManager] = 
+    useState<COTIOnboardingManager>();
+
+  useEffect(() => {
+    if (walletProvider) {
+      const manager = new COTIOnboardingManager(walletProvider);
+      setOnboardingManager(manager);
+    }
+  }, [walletProvider]);
+
+  const startOnboarding = async () => {
+    if (!onboardingManager) return;
+
+    try {
+      setStatus({ step: 'initializing', message: 'Initializing...', error: '' });
+      
+      const initialized = await onboardingManager.initialize();
+      if (!initialized) {
+        throw new Error('Failed to initialize onboarding');
+      }
+
+      setStatus({ step: 'onboarding', message: 'Starting onboarding...', error: '' });
+      
+      const result = await onboardingManager.performOnboarding();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setStatus({
+        step: 'completed',
+        message: `Onboarding completed! AES Key: ${result.aesKey}`,
+        error: ''
+      });
+
+    } catch (error) {
+      setStatus({
+        step: 'error',
+        message: '',
+        error: error.message || 'Onboarding failed'
+      });
+    }
+  };
+
+  return (
+    <div>
+      <h2>COTI Enhanced Onboarding</h2>
+      
+      <w3m-button />
+      
+      <button 
+        onClick={startOnboarding}
+        disabled={!walletProvider || status.step === 'onboarding'}
+      >
+        {status.step === 'onboarding' ? 'Processing...' : 'Start Onboarding'}
+      </button>
+
+      {status.message && (
+        <p className="status-message">{status.message}</p>
+      )}
+
+      {status.error && (
+        <p className="error-message">{status.error}</p>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Pre-onboarding Checks**
+   - Verify wallet connection
+   - Check network compatibility
+   - Validate user permissions
+
+2. **Error Handling**
+   - Handle wallet connection errors
+   - Manage AES key generation failures
+   - Network-related issues
+
+3. **User Experience**
+   - Clear status messages
+   - Progress indicators
+   - Helpful error messages
+
+4. **Security**
+   - Secure AES key storage
+   - Validate all responses
+   - Handle session management
+
+## Common Issues and Solutions
+
+### 1. Wallet Connection Issues
+```typescript
+const checkWalletConnection = async (provider: BrowserProvider) => {
+  try {
+    const accounts = await provider.listAccounts();
+    return accounts.length > 0;
+  } catch {
+    return false;
+  }
+};
+```
+
+### 2. Network Verification
+```typescript
+const verifyNetwork = async (provider: BrowserProvider) => {
+  try {
+    const network = await provider.getNetwork();
+    return network.chainId === 7082400n; // COTI Testnet
+  } catch {
+    return false;
+  }
+};
+```
+
+### 3. AES Key Recovery
+```typescript
+const recoverAESKey = async (signer: any) => {
+  try {
+    await signer.generateOrRecoverAes();
+    const userInfo = signer.getUserOnboardInfo();
+    return userInfo?.aesKey;
+  } catch (error) {
+    console.error('AES key recovery failed:', error);
+    return null;
+  }
+};
+```
