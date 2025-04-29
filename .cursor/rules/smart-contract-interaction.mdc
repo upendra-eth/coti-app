@@ -1,0 +1,51 @@
+# COTI Smart Contract Interaction Guide
+
+This guide explains how to interact with smart contracts on the COTI blockchain.
+
+## Contract Setup
+To interact with a smart contract:
+
+```typescript
+import { Contract } from '@coti-io/coti-ethers';
+
+const contract = new Contract(
+  'CONTRACT_ADDRESS',
+  CONTRACT_ABI,
+  signer
+);
+```
+
+## Common Interactions
+
+### Reading Contract Data
+```typescript
+// Read-only calls
+const result = await contract.METHOD_NAME();
+const balance = await contract.balanceOf(address);
+```
+
+### Writing to Contract
+```typescript
+try {
+  // State-changing transactions
+  const tx = await contract.METHOD_NAME(params);
+  await tx.wait(); // Wait for confirmation
+} catch (error) {
+  console.error('Contract interaction failed:', error);
+}
+```
+
+## Event Handling
+```typescript
+contract.on('EventName', (...args) => {
+  console.log('Event received:', args);
+});
+```
+
+## Best Practices
+1. Always use try-catch blocks for contract interactions
+2. Wait for transaction confirmations
+3. Implement proper error handling
+4. Monitor gas costs
+5. Validate input parameters
+6. Use TypeScript interfaces for contract types
