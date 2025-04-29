@@ -1,0 +1,53 @@
+# COTI Wallet Integration Guide
+
+This guide explains how to integrate and interact with COTI wallets in your application.
+
+## Web3Modal Setup
+The wallet connection is handled through Web3Modal in @src/App.tsx. Key configuration:
+
+```typescript
+const ethersConfig = defaultConfig({
+  metadata: {
+    name: 'COTI DApp',
+    description: 'Your COTI DApp Description',
+    url: '',
+    icons: ['']
+  },
+  enableEIP6963: true,
+  enableInjected: true,
+  rpcUrl: 'https://testnet.coti.io/rpc',
+  defaultChainId: 7082400
+});
+```
+
+## Wallet Connection
+To connect to a wallet:
+
+```typescript
+const {walletProvider} = useWeb3ModalProvider();
+const ethersProvider = new BrowserProvider(walletProvider);
+const signer = await ethersProvider.getSigner();
+const address = await signer.getAddress();
+```
+
+## Transaction Handling
+For sending transactions:
+
+```typescript
+try {
+  const tx = await signer.sendTransaction({
+    to: 'RECIPIENT_ADDRESS',
+    value: ethers.parseEther('AMOUNT')
+  });
+  await tx.wait();
+} catch (error) {
+  console.error('Transaction failed:', error);
+}
+```
+
+## Best Practices
+1. Always handle connection errors
+2. Verify chain ID before transactions
+3. Use proper error handling
+4. Keep private keys secure
+5. Implement proper state management for wallet connection
