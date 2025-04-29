@@ -1,0 +1,103 @@
+# COTI Development Quick Start Guide
+tags: #coti #blockchain #typescript #web3modal
+description: Essential guide for COTI blockchain development with TypeScript
+author: cursor-ai
+
+## Overview
+This guide helps you quickly start developing applications on the COTI blockchain using TypeScript, Web3Modal, and COTI-ethers.
+
+## Required Dependencies
+```json
+{
+  "dependencies": {
+    "@web3modal/ethers": "^3.0.0",
+    "@coti-io/coti-ethers": "latest",
+    "ethers": "^6.0.0",
+    "react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
+
+## Quick Start Example
+```typescript
+import { useState } from 'react';
+import { useWeb3Modal } from '@web3modal/ethers/react';
+import { BrowserProvider } from '@coti-io/coti-ethers';
+
+// Basic Wallet Connection Component
+function CotiWallet() {
+  const [account, setAccount] = useState('');
+  const [balance, setBalance] = useState('');
+  const { walletProvider } = useWeb3Modal();
+
+  const connectWallet = async () => {
+    try {
+      const provider = new BrowserProvider(walletProvider);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      const balance = await provider.getBalance(address);
+      
+      setAccount(address);
+      setBalance(balance.toString());
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
+    }
+  };
+
+  const sendTransaction = async () => {
+    try {
+      const provider = new BrowserProvider(walletProvider);
+      const signer = await provider.getSigner();
+      
+      const tx = await signer.sendTransaction({
+        to: 'RECIPIENT_ADDRESS',
+        value: '1000000000000000000' // 1 COTI
+      });
+      
+      await tx.wait();
+      console.log('Transaction successful:', tx.hash);
+    } catch (error) {
+      console.error('Transaction failed:', error);
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={connectWallet}>Connect Wallet</button>
+      {account && (
+        <>
+          <p>Account: {account}</p>
+          <p>Balance: {balance}</p>
+          <button onClick={sendTransaction}>Send COTI</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// COTI Network Configuration
+const COTI_NETWORK = {
+  chainId: '0x6C1F90', // COTI Testnet
+  chainName: 'COTI Testnet',
+  nativeCurrency: {
+    name: 'COTI',
+    symbol: 'COTI',
+    decimals: 18
+  },
+  rpcUrls: ['https://testnet-rpc.coti.io']
+};
+```
+
+## Key Points
+1. Always initialize BrowserProvider with Web3Modal's wallet provider
+2. Handle wallet connection errors gracefully
+3. Validate transactions before sending
+4. Use proper COTI network configuration
+5. Implement proper error handling for user feedback
+
+## Common Operations
+- Connect wallet: Use Web3Modal's connect button
+- Send transactions: Always wait for transaction confirmation
+- Check balance: Use provider.getBalance()
+- Switch network: Ensure correct COTI network configuration
